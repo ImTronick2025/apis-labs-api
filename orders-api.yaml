@@ -1,0 +1,158 @@
+openapi: 3.0.0
+info:
+  title: Orders API
+  description: API de ejemplo para gestión de órdenes de compra
+  version: 1.0.0
+  contact:
+    name: APIs Labs Team
+    email: admin@apislabs.com
+
+servers:
+  - url: https://{apim-gateway}/orders/v1
+    description: Azure API Management Gateway
+    variables:
+      apim-gateway:
+        default: apislabs-apim.azure-api.net
+
+tags:
+  - name: orders
+    description: Operaciones de órdenes
+
+paths:
+  /orders:
+    get:
+      tags:
+        - orders
+      summary: Listar todas las órdenes
+      description: Obtiene lista de órdenes con paginación
+      operationId: getOrders
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por estado
+          schema:
+            type: string
+            enum: [pending, processing, completed, cancelled]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de órdenes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+
+    post:
+      tags:
+        - orders
+      summary: Crear nueva orden
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderInput'
+      responses:
+        '201':
+          description: Orden creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+  /orders/{orderId}:
+    get:
+      tags:
+        - orders
+      summary: Obtener orden por ID
+      operationId: getOrderById
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Orden encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Orden no encontrada
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "order-98765"
+        customerId:
+          type: string
+          example: "customer-123"
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+              price:
+                type: number
+        totalAmount:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [pending, processing, completed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderInput:
+      type: object
+      required:
+        - customerId
+        - items
+      properties:
+        customerId:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: integer
+                minimum: 1
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Ocp-Apim-Subscription-Key
+
+security:
+  - ApiKeyAuth: []

@@ -1,0 +1,291 @@
+openapi: 3.0.0
+info:
+  title: Petstore API
+  description: API de ejemplo para el laboratorio DevOps - Gestión de mascotas
+  version: 1.0.0
+  contact:
+    name: APIs Labs Team
+    email: admin@apislabs.com
+
+servers:
+  - url: https://{apim-gateway}/petstore/v1
+    description: Azure API Management Gateway
+    variables:
+      apim-gateway:
+        default: apislabs-apim.azure-api.net
+
+tags:
+  - name: pets
+    description: Operaciones sobre mascotas
+  - name: health
+    description: Health checks
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check endpoint
+      description: Verifica el estado del servicio
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Servicio funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /pets:
+    get:
+      tags:
+        - pets
+      summary: Obtener lista de mascotas
+      description: Retorna todas las mascotas disponibles
+      operationId: getPets
+      parameters:
+        - name: limit
+          in: query
+          description: Número máximo de resultados
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 10
+        - name: offset
+          in: query
+          description: Número de registros a saltar
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+      responses:
+        '200':
+          description: Lista de mascotas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+        '400':
+          description: Parámetros inválidos
+        '500':
+          description: Error interno del servidor
+
+    post:
+      tags:
+        - pets
+      summary: Crear una nueva mascota
+      description: Agrega una nueva mascota a la tienda
+      operationId: createPet
+      requestBody:
+        description: Objeto mascota a crear
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '201':
+          description: Mascota creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '400':
+          description: Datos inválidos
+        '500':
+          description: Error interno del servidor
+
+  /pets/{petId}:
+    get:
+      tags:
+        - pets
+      summary: Obtener mascota por ID
+      description: Retorna una mascota específica
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          description: ID de la mascota
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Mascota encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: Mascota no encontrada
+        '500':
+          description: Error interno del servidor
+
+    put:
+      tags:
+        - pets
+      summary: Actualizar mascota existente
+      description: Actualiza información de una mascota
+      operationId: updatePet
+      parameters:
+        - name: petId
+          in: path
+          description: ID de la mascota
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Datos actualizados de la mascota
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PetInput'
+      responses:
+        '200':
+          description: Mascota actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        '404':
+          description: Mascota no encontrada
+        '400':
+          description: Datos inválidos
+        '500':
+          description: Error interno del servidor
+
+    delete:
+      tags:
+        - pets
+      summary: Eliminar mascota
+      description: Elimina una mascota por su ID
+      operationId: deletePet
+      parameters:
+        - name: petId
+          in: path
+          description: ID de la mascota a eliminar
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Mascota eliminada exitosamente
+        '404':
+          description: Mascota no encontrada
+        '500':
+          description: Error interno del servidor
+
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+        - species
+      properties:
+        id:
+          type: string
+          description: ID único de la mascota
+          example: "pet-12345"
+        name:
+          type: string
+          description: Nombre de la mascota
+          example: "Firulais"
+        species:
+          type: string
+          description: Especie de la mascota
+          enum: [dog, cat, bird, fish, rabbit, other]
+          example: "dog"
+        breed:
+          type: string
+          description: Raza de la mascota
+          example: "Labrador"
+        age:
+          type: integer
+          format: int32
+          description: Edad en años
+          example: 3
+        color:
+          type: string
+          description: Color principal
+          example: "Golden"
+        weight:
+          type: number
+          format: float
+          description: Peso en kilogramos
+          example: 25.5
+        status:
+          type: string
+          description: Estado de disponibilidad
+          enum: [available, pending, sold]
+          example: "available"
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        updatedAt:
+          type: string
+          format: date-time
+          description: Última actualización
+
+    PetInput:
+      type: object
+      required:
+        - name
+        - species
+      properties:
+        name:
+          type: string
+          description: Nombre de la mascota
+          example: "Firulais"
+        species:
+          type: string
+          description: Especie de la mascota
+          enum: [dog, cat, bird, fish, rabbit, other]
+          example: "dog"
+        breed:
+          type: string
+          description: Raza de la mascota
+          example: "Labrador"
+        age:
+          type: integer
+          format: int32
+          description: Edad en años
+          example: 3
+        color:
+          type: string
+          description: Color principal
+          example: "Golden"
+        weight:
+          type: number
+          format: float
+          description: Peso en kilogramos
+          example: 25.5
+        status:
+          type: string
+          description: Estado de disponibilidad
+          enum: [available, pending, sold]
+          default: available
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Ocp-Apim-Subscription-Key
+      description: API Key de Azure API Management
+
+security:
+  - ApiKeyAuth: []
