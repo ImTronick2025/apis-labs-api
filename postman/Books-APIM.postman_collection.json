@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "ApisLabs Books API (APIM)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "url": {
+          "raw": "{{apimUrl}}/api/health",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "List Books",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "url": {
+          "raw": "{{apimUrl}}/api/books",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "books"]
+        }
+      }
+    },
+    {
+      "name": "Create Book",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "  var data = pm.response.json();",
+              "  if (data && data.id) {",
+              "    pm.environment.set('bookId', data.id);",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isbn\": \"978-1-111111-11-1\",\n  \"title\": \"Codex Test Book\",\n  \"author\": { \"id\": \"author-test\", \"name\": \"Codex\" },\n  \"categories\": [\"Testing\"],\n  \"publicationYear\": 2024,\n  \"language\": \"es\",\n  \"pages\": 123,\n  \"available\": true\n}"
+        },
+        "url": {
+          "raw": "{{apimUrl}}/api/books",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "books"]
+        }
+      }
+    },
+    {
+      "name": "Get Book By Id",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "url": {
+          "raw": "{{apimUrl}}/api/books/{{bookId}}",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "books", "{{bookId}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Book",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Codex Test Book (Updated)\",\n  \"pages\": 124\n}"
+        },
+        "url": {
+          "raw": "{{apimUrl}}/api/books/{{bookId}}",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "books", "{{bookId}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Book",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Ocp-Apim-Subscription-Key", "value": "{{apimKey}}" }
+        ],
+        "url": {
+          "raw": "{{apimUrl}}/api/books/{{bookId}}",
+          "host": ["{{apimUrl}}"],
+          "path": ["api", "books", "{{bookId}}"]
+        }
+      }
+    }
+  ]
+}

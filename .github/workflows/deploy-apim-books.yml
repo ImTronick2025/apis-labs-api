@@ -1,0 +1,97 @@
+name: Deploy Books API to APIM
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  APIM_NAME: ${{ secrets.AZURE_APIM_NAME }}
+  APIM_RESOURCE_GROUP: ${{ secrets.AZURE_APIM_RESOURCE_GROUP }}
+  FUNCTION_APP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
+  FUNCTION_APP_RESOURCE_GROUP: ${{ secrets.AZURE_FUNCTIONAPP_RESOURCE_GROUP }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Validate settings
+        run: |
+          if [ -z "$APIM_NAME" ] || [ -z "$APIM_RESOURCE_GROUP" ] || [ -z "$FUNCTION_APP_NAME" ] || [ -z "$FUNCTION_APP_RESOURCE_GROUP" ]; then
+            echo "Missing required secrets: AZURE_APIM_NAME, AZURE_APIM_RESOURCE_GROUP, AZURE_FUNCTIONAPP_NAME, AZURE_FUNCTIONAPP_RESOURCE_GROUP" >&2
+            exit 1
+          fi
+
+      - name: Resolve function key
+        id: func
+        run: |
+          FUNCTION_KEY=$(az functionapp keys list -g "$FUNCTION_APP_RESOURCE_GROUP" -n "$FUNCTION_APP_NAME" --query "functionKeys.default" -o tsv)
+          if [ -z "$FUNCTION_KEY" ]; then
+            echo "Failed to read function key" >&2
+            exit 1
+          fi
+          echo "function_key=$FUNCTION_KEY" >> $GITHUB_OUTPUT
+
+      - name: Upsert APIM named value for function key
+        run: |
+          az apim nv create \
+            --resource-group "$APIM_RESOURCE_GROUP" \
+            --service-name "$APIM_NAME" \
+            --named-value-id function-key \
+            --display-name function-key \
+            --secret true \
+            --value "${{ steps.func.outputs.function_key }}" \
+          || az apim nv update \
+            --resource-group "$APIM_RESOURCE_GROUP" \
+            --service-name "$APIM_NAME" \
+            --named-value-id function-key \
+            --secret true \
+            --value "${{ steps.func.outputs.function_key }}"
+
+      - name: Import OpenAPI into APIM
+        run: |
+          az apim api import \
+            --resource-group "$APIM_RESOURCE_GROUP" \
+            --service-name "$APIM_NAME" \
+            --api-id books-api \
+            --display-name "Books API" \
+            --path api \
+            --specification-format OpenApiJson \
+            --specification-path books-api.yaml \
+            --service-url "https://$FUNCTION_APP_NAME.azurewebsites.net/api"
+
+      - name: Apply APIM policy
+        run: |
+          cat > policy.xml << 'EOF'
+          <policies>
+            <inbound>
+              <base />
+              <set-backend-service base-url="https://$FUNCTION_APP_NAME.azurewebsites.net/api" />
+              <set-header name="x-functions-key" exists-action="override">
+                <value>{{function-key}}</value>
+              </set-header>
+            </inbound>
+            <backend>
+              <base />
+            </backend>
+            <outbound>
+              <base />
+            </outbound>
+            <on-error>
+              <base />
+            </on-error>
+          </policies>
+          EOF
+          az apim api policy create \
+            --resource-group "$APIM_RESOURCE_GROUP" \
+            --service-name "$APIM_NAME" \
+            --api-id books-api \
+            --xml-file policy.xml

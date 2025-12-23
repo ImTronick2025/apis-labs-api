@@ -1,0 +1,381 @@
+openapi: 3.0.0
+info:
+  title: Books API
+  description: Book catalog API for APIs Labs
+  version: 1.0.0
+  contact:
+    name: APIs Labs Team
+    email: admin@apislabs.com
+
+servers:
+  - url: https://{apim-gateway}/api
+    description: Azure API Management Gateway
+    variables:
+      apim-gateway:
+        default: apislabs-apim.azure-api.net
+
+tags:
+  - name: books
+    description: Book catalog operations
+  - name: health
+    description: Health checks
+
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check endpoint
+      description: Service health probe
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /books:
+    get:
+      tags:
+        - books
+      summary: List books
+      description: Returns all books
+      operationId: getBooks
+      responses:
+        '200':
+          description: Book list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Book'
+        '500':
+          description: Server error
+
+    post:
+      tags:
+        - books
+      summary: Create book
+      description: Creates a new book
+      operationId: createBook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookInput'
+      responses:
+        '201':
+          description: Book created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+
+  /books/{id}:
+    get:
+      tags:
+        - books
+      summary: Get book by id
+      description: Returns a book by id
+      operationId: getBookById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+        '500':
+          description: Server error
+
+    put:
+      tags:
+        - books
+      summary: Update book
+      description: Updates a book by id
+      operationId: updateBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookUpdate'
+      responses:
+        '200':
+          description: Book updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+
+    delete:
+      tags:
+        - books
+      summary: Delete book
+      description: Deletes a book by id
+      operationId: deleteBook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Book deleted
+        '404':
+          description: Book not found
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    Book:
+      type: object
+      required:
+        - id
+        - isbn
+        - title
+        - author
+        - categories
+        - publicationYear
+        - language
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique book id
+          example: "book-12345"
+        isbn:
+          type: string
+          description: ISBN
+          example: "978-1-234567-89-0"
+        title:
+          type: string
+          description: Title
+          example: "Clean Architecture"
+        author:
+          $ref: '#/components/schemas/AuthorInfo'
+        categories:
+          type: array
+          items:
+            type: string
+          example: ["Technology"]
+        publicationYear:
+          type: integer
+          format: int32
+          example: 2017
+        language:
+          type: string
+          example: "en"
+        pages:
+          type: integer
+          format: int32
+          nullable: true
+          example: 432
+        publisher:
+          type: string
+          nullable: true
+          example: "Prentice Hall"
+        description:
+          type: string
+          nullable: true
+          example: "A guide to software architecture"
+        coverImage:
+          type: string
+          nullable: true
+          example: "https://example.com/covers/clean-architecture.jpg"
+        available:
+          type: boolean
+          example: true
+        rating:
+          type: number
+          format: double
+          nullable: true
+          example: 4.8
+        reviewCount:
+          type: integer
+          format: int32
+          example: 1543
+        price:
+          $ref: '#/components/schemas/PriceInfo'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BookInput:
+      type: object
+      required:
+        - isbn
+        - title
+        - author
+        - categories
+        - publicationYear
+        - language
+      properties:
+        isbn:
+          type: string
+          example: "978-1-234567-89-0"
+        title:
+          type: string
+          example: "Clean Architecture"
+        author:
+          $ref: '#/components/schemas/AuthorInfo'
+        categories:
+          type: array
+          items:
+            type: string
+          example: ["Technology"]
+        publicationYear:
+          type: integer
+          format: int32
+          example: 2017
+        language:
+          type: string
+          example: "en"
+        pages:
+          type: integer
+          format: int32
+          nullable: true
+        publisher:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        coverImage:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+          nullable: true
+        rating:
+          type: number
+          format: double
+          nullable: true
+        reviewCount:
+          type: integer
+          format: int32
+          nullable: true
+        price:
+          $ref: '#/components/schemas/PriceInfo'
+
+    BookUpdate:
+      type: object
+      properties:
+        isbn:
+          type: string
+        title:
+          type: string
+        author:
+          $ref: '#/components/schemas/AuthorInfo'
+        categories:
+          type: array
+          items:
+            type: string
+        publicationYear:
+          type: integer
+          format: int32
+        language:
+          type: string
+        pages:
+          type: integer
+          format: int32
+          nullable: true
+        publisher:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        coverImage:
+          type: string
+          nullable: true
+        available:
+          type: boolean
+          nullable: true
+        rating:
+          type: number
+          format: double
+          nullable: true
+        reviewCount:
+          type: integer
+          format: int32
+          nullable: true
+        price:
+          $ref: '#/components/schemas/PriceInfo'
+
+    AuthorInfo:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          example: "author-001"
+        name:
+          type: string
+          example: "Robert C. Martin"
+
+    PriceInfo:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+          nullable: true
+          example: 29.99
+        currency:
+          type: string
+          nullable: true
+          example: "USD"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Ocp-Apim-Subscription-Key
+      description: API key from Azure API Management
+
+security:
+  - ApiKeyAuth: []
